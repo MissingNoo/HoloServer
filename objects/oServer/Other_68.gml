@@ -52,11 +52,20 @@ switch (type_event) {
 	case network_type_disconnect:
 		socket = ds_map_find_value(async_load, "socket");
 		network_destroy(socket);
+		network_destroy(server);
+		server = undefined;
 		ds_map_delete(socketList, socket);
 		global.px[socket] = 0;
 		global.py[socket] = 0;
+		i = 0;
 		if (socket == 1) {
-		    game_restart();
+			repeat (ds_list_size(socketList)) {
+			    var _sock = ds_list_find_value(socketList, i);
+				buffer_seek(serverBuffer, buffer_seek_start, 0);
+				buffer_write(serverBuffer, buffer_u8, Network.HostDisconnected);
+				network_send_packet(_sock, serverBuffer, buffer_tell(serverBuffer));
+			}
+			game_restart();
 		}
 		break;
 		

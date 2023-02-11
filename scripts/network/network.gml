@@ -10,6 +10,7 @@ enum Network {
 	Spawn,
 	SpawnUpgrade,
 	Destroy,
+	HostDisconnected
 }
 function receivedPacket(_buffer, _socket){
 	msgid = buffer_read(_buffer, buffer_u8);
