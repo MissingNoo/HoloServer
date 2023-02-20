@@ -46,7 +46,9 @@ function receivedPacket(_buffer, _socket){
 			_dir = buffer_read(_buffer, buffer_s16);
 			_angle = buffer_read(_buffer, buffer_s16);
 			
+			
 			_vars = buffer_read(_buffer, buffer_string);
+			//var _upginfo = buffer_read(_buffer, buffer_string);
 			//if (_s == 1) {
 				i = 0;
 				repeat (ds_list_size(socketList)) {
@@ -60,7 +62,9 @@ function receivedPacket(_buffer, _socket){
 					buffer_write(serverBuffer, buffer_u16, _spd);
 					buffer_write(serverBuffer, buffer_s16, _dir);
 					buffer_write(serverBuffer, buffer_s16, _angle);
+					
 					buffer_write(serverBuffer, buffer_string, _vars);
+					//buffer_write(serverBuffer, buffer_string, _upginfo);
 					network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
 					i++;
 				}

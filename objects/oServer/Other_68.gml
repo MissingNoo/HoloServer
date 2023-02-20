@@ -51,9 +51,6 @@ switch (type_event) {
 		
 	case network_type_disconnect:
 		socket = ds_map_find_value(async_load, "socket");
-		network_destroy(socket);
-		network_destroy(server);
-		server = undefined;
 		ds_map_delete(socketList, socket);
 		global.px[socket] = 0;
 		global.py[socket] = 0;
