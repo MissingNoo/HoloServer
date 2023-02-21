@@ -9,8 +9,13 @@ enum Network {
 	PlayerDisconnect,
 	Spawn,
 	SpawnUpgrade,
+	DestroyUpgrade,
+	UpdateUpgrade,
 	Destroy,
-	HostDisconnected
+	HostDisconnected,
+	LobbyConnect,
+	IsHost,
+	StartGame
 }
 function receivedPacket(_buffer, _socket){
 	msgid = buffer_read(_buffer, buffer_u8);
@@ -24,7 +29,7 @@ function receivedPacket(_buffer, _socket){
 	var _dir;
 	var _angle;
 	switch (msgid) {
-		case Network.Destroy:
+		case Network.Destroy:{
 			_id = buffer_read(_buffer, buffer_u16);
 			i = 0;
 			repeat (ds_list_size(socketList)) {
@@ -35,9 +40,45 @@ function receivedPacket(_buffer, _socket){
 				network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
 				i++;
 			}
-	        break;
+	        break;}
 		
-		case Network.SpawnUpgrade:
+		case Network.DestroyUpgrade:{
+			_id = buffer_read(_buffer, buffer_u16);
+			i = 0;
+			repeat (ds_list_size(socketList)) {
+				socket = ds_list_find_value(socketList, i);
+				buffer_seek(serverBuffer, buffer_seek_start, 0);
+				buffer_write(serverBuffer, buffer_u8, Network.DestroyUpgrade);
+				buffer_write(serverBuffer, buffer_u16, _id);
+				network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
+				i++;
+			}
+	        break;}
+			
+		case Network.UpdateUpgrade:{
+			var owner = buffer_read(_buffer, buffer_u8);
+			_id = buffer_read(_buffer, buffer_u16);
+			_x = buffer_read(_buffer, buffer_u16);
+			_y = buffer_read(_buffer, buffer_u16);
+			_dir = buffer_read(_buffer, buffer_u16);
+			_angle = buffer_read(_buffer, buffer_u16);
+			i = 0;
+			repeat (ds_list_size(socketList)) {
+				socket = ds_list_find_value(socketList, i);
+				buffer_seek(serverBuffer, buffer_seek_start, 0);
+				buffer_write(serverBuffer, buffer_u8, Network.UpdateUpgrade);
+				buffer_write(serverBuffer, buffer_u8, owner);
+				buffer_write(serverBuffer, buffer_u16, _id);
+				buffer_write(serverBuffer, buffer_u16, _x);
+				buffer_write(serverBuffer, buffer_u16, _y);
+				buffer_write(serverBuffer, buffer_u16, _dir);
+				buffer_write(serverBuffer, buffer_u16, _angle);
+				network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
+				i++;
+			}
+	        break;}
+		
+		case Network.SpawnUpgrade:{
 			_s = buffer_read(_buffer, buffer_u8);
 			_x = buffer_read(_buffer, buffer_u16);
 			_y = buffer_read(_buffer, buffer_u16);
@@ -69,9 +110,9 @@ function receivedPacket(_buffer, _socket){
 					i++;
 				}
 			//}
-	        break;
+	        break;}
 		
-		case Network.Spawn:
+		case Network.Spawn:{
 			_s = buffer_read(_buffer, buffer_u8);
 			_x = buffer_read(_buffer, buffer_u16);
 			_y = buffer_read(_buffer, buffer_u16);
@@ -90,9 +131,9 @@ function receivedPacket(_buffer, _socket){
 					i++;
 				}
 			//}
-	        break;
+	        break;}
 		
-		case Network.Message:
+		case Network.Message:{
 			_s = buffer_read(_buffer, buffer_u8);
 			var message = buffer_read(_buffer, buffer_string);
 			show_message(message);
@@ -102,8 +143,9 @@ function receivedPacket(_buffer, _socket){
 			//buffer_write(serverBuffer, buffer_string, message);
 			//network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
 			
-			break;
-	    case Network.Move:
+			break;}
+			
+	    case Network.Move:{
 			_s = buffer_read(_buffer, buffer_u8);
 			_x = buffer_read(_buffer, buffer_u16);
 			_y = buffer_read(_buffer, buffer_u16);
@@ -128,7 +170,62 @@ function receivedPacket(_buffer, _socket){
 			//show_debug_message(sucess);
 			ds_map_set(socketToInstanceID, string(socket) + "X", _x); 
 			ds_map_set(socketToInstanceID, string(socket) + "Y", _y); 
-	        break;
+	        break;}
+			
+		case Network.LobbyConnect:{
+			var _username = buffer_read(_buffer, buffer_string);
+			var _character = buffer_read(_buffer, buffer_u8);
+			i = 0;
+			players[_socket] = {};
+			players[_socket].username = _username;
+			players[_socket].character = _character;
+			var _json = json_stringify(players);
+			repeat (ds_list_size(socketList)) {
+				socket = ds_list_find_value(socketList, i);
+			    buffer_seek(serverBuffer, buffer_seek_start, 0);
+				buffer_write(serverBuffer, buffer_u8, Network.LobbyConnect);
+				buffer_write(serverBuffer, buffer_string, _json);
+				network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
+				i++;
+			}
+			break;}
 	    
+		case Network.StartGame:{
+			i = 0;
+			repeat (ds_list_size(socketList)) {
+				socket = ds_list_find_value(socketList, i);
+			    buffer_seek(serverBuffer, buffer_seek_start, 0);
+				buffer_write(serverBuffer, buffer_u8, Network.StartGame);
+				network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
+				i++;
+			}
+			break;}
+		
+		case Network.PlayerConnect:{
+			i = 0;
+			repeat (ds_list_size(socketList)) {
+			    var _sock = ds_list_find_value(socketList, i);
+				if (_sock != socket) {
+				    buffer_seek(serverBuffer, buffer_seek_start, 0);
+					buffer_write(serverBuffer, buffer_u8, Network.PlayerJoined);
+					buffer_write(serverBuffer, buffer_u8, _sock);
+					network_send_packet(socket, serverBuffer, buffer_tell(serverBuffer));
+				}
+				i += 1;
+			}
+		
+			i = 0;
+			repeat (ds_list_size(socketList)) {
+			    var _sock = ds_list_find_value(socketList, i);
+				if (_sock != socket) {
+				    buffer_seek(serverBuffer, buffer_seek_start, 0);
+					buffer_write(serverBuffer, buffer_u8, Network.PlayerJoined);
+					buffer_write(serverBuffer, buffer_u8, socket);
+					network_send_packet(_sock, serverBuffer, buffer_tell(serverBuffer));
+				}
+				i += 1;
+			}
+		
+			break;}
 	}
 }

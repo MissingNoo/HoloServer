@@ -7,6 +7,7 @@ if (server != 0) {
 	var answer = show_question("Error starting server, retry?");
 	if (answer) {
 		network_destroy(server);
+		server = undefined;
 	    game_restart();
 	}
 	else {
@@ -17,6 +18,7 @@ socket = noone;
 buffer = noone;
 serverBuffer = buffer_create(2048, buffer_fixed, 1);
 socketList = ds_list_create();
+players = [noone, noone, noone];
 socketToInstanceID = ds_map_create();
 
 playerSpawn = [1895, 1880];
