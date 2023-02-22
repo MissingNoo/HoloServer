@@ -16,7 +16,7 @@ if (server != 0) {
 }
 socket = noone;
 buffer = noone;
-serverBuffer = buffer_create(2048, buffer_fixed, 1);
+serverBuffer = buffer_create(4098, buffer_fixed, 1);
 socketList = ds_list_create();
 players = [noone, noone, noone];
 socketToInstanceID = ds_map_create();
